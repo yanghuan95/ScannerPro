@@ -26,8 +26,9 @@ int main(int argc, char **argv){
 	for(i = 1; i < 1024; ++i){
 		strncpy((char *)&sa, "", sizeof(sa));
 		sa.sin_family = AF_INET;
-		if(isdigit(*argv[1]))
+		if(isdigit(*argv[1])){
 			sa.sin_addr.s_addr = inet_addr(argv[1]);
+		}
 		else if((host = gethostbyname(argv[1])) != 0) 
 			strncpy((char *)&sa.sin_addr, (char *)host->h_addr, sizeof(sa.sin_addr));
 		else{
@@ -36,7 +37,7 @@ int main(int argc, char **argv){
 		}
 
 		sa.sin_port = htons(i);
-
+		
 		net = socket(AF_INET, SOCK_STREAM, 0);
 		if(net < 0){
 			perror("socket");
@@ -45,7 +46,7 @@ int main(int argc, char **argv){
 
 		err = connect(net, (struct sockaddr *)&sa, sizeof(sa));
 		if(err < 0){
-			printf("%s %-5d %s\r", argv[1], i, strerror(errno));
+		//	printf("%s %-5d %s\r", argv[1], i, strerror(errno));
 		}else{
 			printf("%s %-5d accepted\n", argv[1], i);
 			if(shutdown(net, 2) < 0){
