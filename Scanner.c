@@ -15,27 +15,51 @@
 #include<netinet/in.h>
 #include<errno.h>
 #include<netdb.h>
-#include<signal.h>
 
-int main(int argc, char **argv){
+void connectAndScannerByRange(unsigned int min, unsigned int max);
+void connectAndScanner(unsigned int IP);
+unsigned int getNetworkIp(char *input); 
+
+int main(int argc, char *argv[]){
+
+	if(argc == 2){
+		unsigned int IP = getNetworkIp(argv[1]);
+		connectAndScanner(IP);
+	}else if(argc == 3){
+		unsigned int  min = getNetworkIp(argv[1]);
+		unsigned int  max = getNetworkIp(argv[2]);
+		min = ntohl(min);
+		max = ntohl(max);
+		if(min > max){
+			unsigned int temp = min;
+			min = max;
+			max = temp;
+		}
+		connectAndScannerByRange(min, max);
+	}else{
+		printf("error args\n");
+	}
+
+	return 0;
+}
+
+void connectAndScannerByRange(unsigned int min, unsigned int max){
+	unsigned int temp;
+	for(int i = min; i <= max; ++i){
+		temp = htonl(i);
+		connectAndScanner(temp);
+	}
+}
+
+void connectAndScanner(unsigned int IP_address){
 	int probport = 0;
-	struct hostent *host;
 	int err, i, net;
 	struct sockaddr_in sa;
 
 	for(i = 1; i < 1024; ++i){
 		strncpy((char *)&sa, "", sizeof(sa));
 		sa.sin_family = AF_INET;
-		if(isdigit(*argv[1])){
-			sa.sin_addr.s_addr = inet_addr(argv[1]);
-		}
-		else if((host = gethostbyname(argv[1])) != 0) 
-			strncpy((char *)&sa.sin_addr, (char *)host->h_addr, sizeof(sa.sin_addr));
-		else{
-			herror(argv[1]);
-			exit(2);
-		}
-
+		sa.sin_addr.s_addr = IP_address;
 		sa.sin_port = htons(i);
 		
 		net = socket(AF_INET, SOCK_STREAM, 0);
@@ -46,9 +70,9 @@ int main(int argc, char **argv){
 
 		err = connect(net, (struct sockaddr *)&sa, sizeof(sa));
 		if(err < 0){
-		//	printf("%s %-5d %s\r", argv[1], i, strerror(errno));
+			printf("%s %-5d %s\r", inet_ntoa(sa.sin_addr), i, strerror(errno));
 		}else{
-			printf("%s %-5d accepted\n", argv[1], i);
+			printf("%s %-5d accepted\n", inet_ntoa(sa.sin_addr), i);
 			if(shutdown(net, 2) < 0){
 				perror("shutdown");
 				exit(2);
@@ -57,8 +81,24 @@ int main(int argc, char **argv){
 
 		close(net);
 	}
+}
 
-	printf("\r");
-	fflush(stdout);
-	return 0;
+unsigned int getNetworkIp(char *input){
+	struct in_addr *ip;
+	struct hostent *host;
+
+	ip = (struct in_addr *) malloc(sizeof(ip));
+
+	if(isdigit(input[0])){
+		inet_aton(input, ip);
+	}
+	else if((host = gethostbyname(input)) != 0) {
+		ip = (struct in_addr *) host->h_addr_list[0];
+	}
+	else{
+		herror(input);
+		exit(2);
+	}
+
+	return ip->s_addr;
 }
